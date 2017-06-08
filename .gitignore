@@ -1,0 +1,8 @@
+*~
+\#*
+.\#*
+.env
+.idea
+**/*.exe
+**/vendor/**
+!**/vendor/vendor.json

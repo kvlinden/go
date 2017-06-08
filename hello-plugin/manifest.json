@@ -1,0 +1,33 @@
+{
+	"id" : "hello-plugin",
+	"version" : "0.0.0",
+	"build" : 1,
+	"name" : "hello-plugin",
+	"title" : "Hello Plugin",
+	"urls" : "https://cqlcorp.com",
+	"description" : "Minimal goCMS plugin",
+	"author" : "CQLCORP",
+	"authorUrl" : "www.cqlcorp.com",
+	"authorEmail" : "nextgen@cqlcorp.com",
+	"bin" : "hello-plugin",
+	"routes" : [
+		{
+			"name" : "The hello-plugin / route, to be passed through by goCMS",
+			"route" : "Root",
+			"method" : "GET",
+			"url" : "/"
+		},
+		{
+			"name" : "The public route, to be served up under /api/public",
+			"route" : "Public",
+			"method" : "GET",
+			"url" : "/public"
+		},
+		{
+			"name" : "The authorized route, to be protected by goCMS middleware",
+			"route" : "Auth",
+			"method" : "GET",
+			"url" : "/auth"
+		}
+	]
+}

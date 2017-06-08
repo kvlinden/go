@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "XNjfOxYhZsHfXrC4D2Fb9yEeC/E=",
+			"path": "calvin.edu/kvlinden/go/stringutils",
+			"revision": "a01192deadfb6938f861ae6b5c3145db44284786",
+			"revisionTime": "2017-05-12T21:10:42Z"
+		}
+	],
+	"rootPath": "calvin.edu/kvlinden/go/govendor"
+}

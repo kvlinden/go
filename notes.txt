@@ -1,0 +1,150 @@
+
+---------------------------------
+Basic Technologies
+
+Support tools (will need to demo these)
+- Slack - intra-team communication (https://cql.slack.com/, particularly nextgen)
+- Tracker - tracking daily work hours (https://tracker.cqlcorp.com/ "time" tab, "Add Time")
+- Jira - Project task manager (https://jira.cqlcorp.com/)
+- Confluence - Project documents (https://cqlcorp.atlassian.net/)
+Code Repositories/Tools
+- Git (https://www.atlassian.com/git/tutorials, work up to "Feature Branch Workflow" or "Gitflow Workflow")
+- Github (public code, e.g., goCMS - https://github.com/gocms-io)
+- Stash (private code, e.g., CQLweb - https://stash.cqlcorp.net/projects/CQLWEB, PMdashboard - https://stash.cqlcorp.net/projects/CPD)
+- Gitbash || Sourcetree
+Go programming
+- GoLang - the language itself (https://golang.org/doc/, work through at least "A Tour of Go")
+- Govendor
+- Go templates
+- Gin
+Other Stuff
+- Node && NPM
+- IDEs: Sublime || Atom || Intellij(Gogland)
+    Added bashsupport plugin to Gogland to run deployment scripts.
+- ReactJS
+
+---------------------------------
+Intellij Gogland
+
+Create a bash script runner
+- Install bashsupport
+- Give full paths to the bash script and to the git bash executable, give the arguments if any and give the full path to the development directory.
+
+---------------------------------
+CQL Website
+
+Questions/Issues:
+- Is the NextGen team responsible for the CQL website? If so, we need deploy tools (and auto-testing?).
+- Why do we need to copy views/* & www_admin/* to the plugin directory?
+    views contains go templates which are
+
+Components:
+- api - cf. goCMS controllers
+- config - The configuration structure, built using values from .env (cf. goCMS context)
+- content - added as preparation to move to the goCMS plugin structure; not part of the current cqlweb
+- database - Website database (users and user log data, projects, blog entries, secure_codes) (cf goCMS database)
+- fonts - special site fonts built using font-awesome
+- models - domain model classes (matching database tables) (cf. goCMS models)
+- node_modules - npm vendored tools to be webpacked
+- repositories - cf. goCMS repositories
+- services - cf. goCMS services
+- static - the webpacked CSS/JS code for the site
+    site - JS code for the go templates (both stored in views/*)
+    vendor - tools used by the main site (e.g., jquery)
+    admin_vendor - tools used by the admin features (e.g., Bootstrap)
+    admin - tools used by the admin features (e.g., Angular)
+- utility - some general site utilities
+- vendor - govendor-ed tools
+- views - go templates and accompanying JS code for the main site
+- www_admin - Angular UI for site administration (e.g., add/editing projects). Rewrite in ReactJS for goCMS.
+See L's startup notes (on Slack).
+- go-build the backend (an early version of goCMS, with considerable copied code)
+- npm-install-start the front end (webpacks the CSS/JS/JQuery/Angular for the app)
+Use the dev-rob version of the system.
+- The dev-tashi appears to have dependencies on local libraries not in the vendor file.
+- We had to delete vendor/*, govendor fetch +outside
+- Clean this up and get it on the develop branch. For now, I created a dev-plugin branch.
+- from L: G78E8pjM
+
+---------------------------------
+CQL Website Plugin
+The "Website Admin UI" and "Website UI" repos are dead.
+Questions/Issues:
+- We'll need to port the UI features of the website to GoCMS-UI.
+- Shouldn't the /api/userData&userCount features be part of goCMS? That could be a generally useful feature for all sites.
+- It's not optimal that the plugin has a dependency on the route root paths assumed by GoCMS (e.g., /api for Public/Auth/Admin).
+Changes:
+- See $utility.sh for build/install/run commands. Rob has a new tool to try for this.
+- Add manifest.json to the cqlWeb root.
+    Will need to add routes from goCMS to cqlWeb
+- Copied variables from cqlWeb/.env to goCMS/.env (commenting out the cqlWeb PORT 9090).
+- Modify references to /views to content/plugins/cqlWebsite-api/views in pages-init.go.
+    We have to do this because goCMS runs the plugin in its own root directory, not the plugin's.
+    I've modified goCMS to call the plugin in its own directory; may this break things (e.g., the PM Dashboard plugin).
+        See github history and https://groups.google.com/forum/#!topic/golang-nuts/cnG-N3KcoUU.
+    Instead, I've reverted to the standard goCMS and have modified CQLweb to use a plugin/executable path context variable
+        ROOT_PATH - See config.go and .env.
+        Set ROOT_PATH for the standalone version (.) and the plugin version (content/plugins/cqlWebsite-api) appropriately.
+- Configured the production server for the /static resources (set STATIC_URL_PATH and MEDIA_URL_PATH in .env appropriately).
+    Add a manifest entry instructing goCMS to route all /static/*filepath GETs to to the plugin.
+    Changed the paths in api-init.go to use ROOT_PATH.
+    Changed the Gin static path settings in api-init.go.
+    Copied the media files from the media server.
+    Had to remove media/favicons/manifest.json because goCMS mistook it for a new plugin manifest.
+        There should only be one manifest.json file in the plugin directory (should goCMS only look in the root of the plugin directory?)
+
+Notes:
+- The sitemap.xml file is created by GETting /api/sitemap/create.
+Routes to be addressed (goCMS - handled by goCMS; !goCMS - considered and dropped from goCMS?):
+goCMS	 > cqlWebsite-api - [GIN-debug] GET    /admin                    --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers/pageControllers.(*AdminPageController).Init.func1 (3 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] GET    /admin/:extension         --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers/pageControllers.(*AdminPageController).Init.func2 (3 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] GET    /api/admin/user           --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AdminUserController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.getAll)-fm (7 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] GET    /api/admin/user/:userId   --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AdminUserController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.get)-fm (7 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] PUT    /api/admin/user/:userId   --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AdminUserController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.update)-fm (7 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] POST   /api/admin/user           --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AdminUserController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.add)-fm (7 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] DELETE /api/admin/user/:userId   --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AdminUserController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.delete)-fm (7 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] POST   /api/login                --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AuthController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.login)-fm (4 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] GET    /api/verify-device        --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AuthController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.getDeviceCode)-fm (5 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] POST   /api/verify-device        --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AuthController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.verifyDevice)-fm (5 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] POST   /api/reset-password       --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AuthController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.resetPassword)-fm (4 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] PUT    /api/reset-password       --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*AuthController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.setPassword)-fm (4 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] GET    /api/healthy              --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*HealthyController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.healthy)-fm (4 handlers)
+goCMS	 > cqlWebsite-api - [GIN-debug] GET    /api/verify               --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*HealthyController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.user)-fm (6 handlers)
+!goCMS	 > cqlWebsite-api - [GIN-debug] GET    /api/admin/verify         --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.(*HealthyController).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/controllers.user)-fm (7 handlers)
+!goCMS	 > cqlWebsite-api - [GIN-debug] GET    /api/admin/verifyTokens   --> stash.cqlcorp.net/cqlw/cqlWebsite-api/api/middleware.(*PermissionsMiddleware).(stash.cqlcorp.net/cqlw/cqlWebsite-api/api/middleware.requireAdmin)-fm (6 handlers)
+
+---------------------------------
+goCMS
+
+Questions/Issues:
+- How does this compare/contrast with CQL's other CMS initiatives (e.g., Parfait)?
+    Parfait is closed-source, MSQL-based and used by some of the production developers; nextgen is focused on goCMS.
+- Consider running the plugin from within its own directory. See the discussion of this above.
+- Consider serving up robots.txt in goCMS.
+
+Update README.md:
+- Install both mySQL and w\SQL Workbench (the latter comes with the former as an option).
+    Installing "Visual C++ redistributable 2015" was a challenge. Search for this on https://www.microsoft.com/en-us/.
+- Why put apidoc command first?
+- Complete the install/run instructions.
+- Distinguish UNIX/Windows/Mac instructions.
+- Clean up utility.sh (replace with make-like tool?).
+
+Components:
+- content - static content, templates (cf jinja2) and microservice plugins
+- context - environment variables; general utilities
+- controllers
+    HTTP route handlers (different controllers for sets of routes)
+    templates, themes, documentation
+    middleware (acl/auth/coors headers, UUIDs, reverse proxy for plugins)
+- database - mySQL connection, hard-coded schema
+- models - domain model classes (cf. DAOs)
+- repositories - DAOs that return model objects
+- routes - basic route definitions (root, public, static, authorized, ...)
+- services - connects calls from the controllers to the repository DAOs (cf. the Active record pattern)
+- utility - general utility functions
+- vendor - govendor stuff
+
+Manifest Notes:
+- The manifest lists routes that goCMS, running on port 9090, should pass through to the plugin, running on port 3000X.
+- The plugin needs to run on the port expected by goCMS. Tashi's new goCMS develop branch has a hack to handle this.
