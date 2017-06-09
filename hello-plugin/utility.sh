@@ -6,7 +6,7 @@ SOURCE_PATH=$GOPATH\\src\\github.com\\kvlinden\\go\\$APP_NAME
 GOCMS_PATH=$GOPATH\\src\\github.com\\gocms-io\\gocms
 DESTINATION_PATH=$GOCMS_PATH\\content\\plugins\\$APP_NAME
 
- if [ "$COMMAND" = "deploy" ];
+if [ "$COMMAND" = "deploy" ];
         then
             echo "(re)building application..."
             cd $SOURCE_PATH
@@ -22,13 +22,4 @@ DESTINATION_PATH=$GOCMS_PATH\\content\\plugins\\$APP_NAME
             cd $GOCMS_PATH
             go build
             ./gocms.exe
-fi
-if [ "$COMMAND" = "test" ];
-        then
-            echo "building application..."
-            cd $SOURCE_PATH
-            go build
-
-            echo "testing application..."
-            go test
 fi
