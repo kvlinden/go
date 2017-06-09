@@ -23,9 +23,12 @@ DESTINATION_PATH=$GOCMS_PATH\\content\\plugins\\$APP_NAME
             go build
             ./gocms.exe
 fi
-if [ "$COMMAND" = "undeploy" ];
+if [ "$COMMAND" = "test" ];
         then
-            echo "removing application..."
-            rm -rf $DESTINATION_PATH
-fi
+            echo "building application..."
+            cd $SOURCE_PATH
+            go build
 
+            echo "testing application..."
+            go test
+fi
