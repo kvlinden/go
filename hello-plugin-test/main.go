@@ -1,39 +1,42 @@
 /*
 Run this API integration test using the test utility option.
- */
+*/
 package main
 
 import (
-	"net/http"
+	"bytes"
 	"fmt"
 	"io/ioutil"
-	"regexp"
+	"net/http"
 	"os"
+	"regexp"
 )
 
 type TestRequest struct {
-	Method      string
-	Protocol    string
-	Host        string
-	Port        string
-	Route       string
+	Method   string
+	Protocol string
+	Host     string
+	Port     string
+	Route    string
 }
 type CorrectResponse struct {
-	ResponseCode int
+	ResponseCode  int
 	ContentRegexp string
 }
 
-var PROTOCOL="http"
-var HOST="localhost"
-var PORT="9090"
+var PROTOCOL = "http"
+var HOST = "localhost"
+var PORT = "9090"
 
 func main() {
 	runTest(&TestRequest{"GET", PROTOCOL, HOST, PORT, "/"},
-		&CorrectResponse{http.StatusOK, ".*plugin.*"} )
+		&CorrectResponse{http.StatusOK, ".*plugin.*"})
 	runTest(&TestRequest{"GET", PROTOCOL, HOST, PORT, "/api/public"},
-		&CorrectResponse{http.StatusOK, ".*public.*"} )
+		&CorrectResponse{http.StatusOK, ".*public.*"})
 	runTest(&TestRequest{"GET", PROTOCOL, HOST, PORT, "/api/auth"},
-		&CorrectResponse{http.StatusUnauthorized, ".*"} )
+		&CorrectResponse{http.StatusUnauthorized, ".*"})
+
+	testHttpInfoPassage()
 
 	fmt.Println("tests passed...")
 }
@@ -43,19 +46,29 @@ func runTest(request *TestRequest, correct *CorrectResponse) {
 	// Prepare request
 	url := fmt.Sprintf("%s://%s:%s%s", request.Protocol, request.Host, request.Port, request.Route)
 	req, err := http.NewRequest(request.Method, url, nil)
-	if err != nil { failTest("build request failed...") }
+	if err != nil {
+		failTest("build request failed...")
+	}
 
 	// Run request
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	if err != nil { failTest("send request failed...") }
+	if err != nil {
+		failTest("send request failed...")
+	}
 	content, err := ioutil.ReadAll(resp.Body)
-	if err != nil { failTest("parsing response failed...") }
+	if err != nil {
+		failTest("parsing response failed...")
+	}
 
 	// Test the response
-	if resp.StatusCode != correct.ResponseCode { failTest("incorrect response code...") }
+	if resp.StatusCode != correct.ResponseCode {
+		failTest("incorrect response code...")
+	}
 	matched, err := regexp.MatchString(correct.ContentRegexp, string(content))
-	if !matched || err != nil { failTest("contents check failed...") }
+	if !matched || err != nil {
+		failTest("contents check failed...")
+	}
 
 	fmt.Println("passed: ", request)
 }
@@ -65,31 +78,31 @@ func failTest(failMessage string) {
 	os.Exit(-1)
 }
 
+func testHttpInfoPassage() {
+	// Prepare request (with post data and a header key value)
+	url := "http://localhost:9090/"
+	postData := []byte(`{"key":"post data"}`)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(postData))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("header-key", "header value")
+	if err != nil {
+		failTest("build request failed...")
+	}
 
+	// Run request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		failTest("send request failed...")
+	}
 
-// https://stackoverflow.com/questions/19253469/make-a-url-encoded-post-request-using-http-newrequest
-//func runTest(test *TestRequest) {
-//	//apiUrl := "https://api.com"
-//	//resource := "/user/"
-//	//data := url.Values{}
-//	//data.Set("name", "foo")
-//	//data.Add("surname", "bar")
-//
-//	fmt.Println("***", test)
-//
-//	//u, _ := url.ParseRequestURI()
-//	//u.Path = test.Route
-//	//urlStr := fmt.Sprintf("%v", u) // "https://api.com/user/"
-//	//
-//	//fmt.Println("***", urlStr, "***")
-//
-//	client := &http.Client{}
-//	req, _ := http.NewRequest("GET", fmt.Sprintf("%s://%s:%s%s", test.Protocol, test.Host, test.Port), nil)
-//	//r, _ := http.NewRequest("GET", urlStr, bytes.NewBufferString(data.Encode()))
-//	//r.Header.Add("Authorization", "auth_token=\"XXXXXXX\"")
-//	//r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-//	//r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
-//
-//	resp, _ := client.Do(req)
-//	fmt.Println(resp.Status)
-//}
+	// Process response
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		failTest("parsing response failed...")
+	}
+	fmt.Println("***", "content: ", string(content))
+	fmt.Println("***", "code: ", resp.Status)
+	fmt.Println("***", "a sample response header value - content-length: ", resp.Header.Get("Content-Length"))
+
+}

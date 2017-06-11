@@ -18,6 +18,12 @@
 			"url" : "/"
 		},
 		{
+			"name" : "A POST-testing route",
+			"route" : "Root",
+			"method" : "POST",
+			"url" : "/"
+		},
+		{
 			"name" : "The public route, to be served up under /api/public",
 			"route" : "Public",
 			"method" : "GET",

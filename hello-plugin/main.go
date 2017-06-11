@@ -21,8 +21,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gin-gonic/gin"
 	"log"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -36,6 +37,8 @@ func main() {
 	router.LoadHTMLGlob(filepath.Join(os.Getenv("GOPATH"), "src/github.com/kvlinden/go/hello-plugin/templates/*"))
 	// A simple index page to be served up by goCMS at /.
 	router.GET("/", helloPlugin)
+	// Test a post message
+	router.POST("/", helloPluginPost)
 	// This "public" path needs to have /api so that it matches what goCMS does. TODO: Is this not a bad dependency?
 	router.GET("/api/public", helloPublic)
 	// Use a gin group to bundle pages that require authorization. This /api base path must, again, match goCMS.
@@ -51,16 +54,25 @@ func helloPlugin(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", gin.H{"title": "Hello Plugin"})
 }
 
+type PostData struct {
+	Key string `json:"key" binding:"required"`
+}
+
+func helloPluginPost(c *gin.Context) {
+	var postData PostData
+	err := c.BindJSON(&postData)
+	if err != nil {
+		c.String(http.StatusBadRequest, "bad request...")
+	}
+	c.String(http.StatusOK, fmt.Sprintf("Hello, %s and %s!", postData.Key, c.Request.Header.Get("header-key")))
+}
+
 func helloPublic(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "Hello, public page!",
-	})
+	c.JSON(200, gin.H{"message": "Hello, public page!"})
 }
 
 func helloAuth(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "Hello, auth page!",
-	})
+	c.JSON(200, gin.H{"message": "Hello, auth page!"})
 }
 
 func helloMiddleware(c *gin.Context) {
