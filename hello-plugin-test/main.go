@@ -104,5 +104,4 @@ func testHttpInfoPassage() {
 	fmt.Println("***", "content: ", string(content))
 	fmt.Println("***", "code: ", resp.Status)
 	fmt.Println("***", "a sample response header value - content-length: ", resp.Header.Get("Content-Length"))
-
 }
