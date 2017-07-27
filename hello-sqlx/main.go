@@ -76,17 +76,73 @@ func AddWhereBoolCondition(fieldName string, value *bool, filterConditions Filte
 }
 func AddWhereDateCondition(fieldName string, value *time.Time, filterConditions FilterConditions) {
 	if value != nil {
-		filterConditions[fieldName] = *value
+		dateValue := *value
+		filterConditions[fieldName] = dateValue.Format("2006-01-02")
 	}
 }
 
 // repository utilities
+func BuildWhereSearchCondition(whereConditionBuffer *bytes.Buffer, firstClause bool, searchConditions *SearchConditions) {
+	if len(*searchConditions) > 0 {
+		for key, value := range *searchConditions {
+			if firstClause {
+				whereConditionBuffer.WriteString("WHERE (")
+				firstClause = false
+			} else {
+				whereConditionBuffer.WriteString(" OR ")
+			}
+			switch v := value.(type) {
+			case string:
+				whereConditionBuffer.WriteString(fmt.Sprintf("%s LIKE '%%%s%%'", key, v))
+			case int64:
+				whereConditionBuffer.WriteString(fmt.Sprintf("%s = %d", key, v))
+			case float64:
+				whereConditionBuffer.WriteString(fmt.Sprintf("%s BETWEEN (%f-0.1) AND (%f+0.1)", key, v, v))
+			}
+		}
+		whereConditionBuffer.WriteString(") ")
+	}
+}
+
+func BuildWhereFilterCondition(whereConditionBuffer *bytes.Buffer, firstClause bool, filterConditions *FilterConditions) {
+	for key, value := range *filterConditions {
+		if firstClause {
+			whereConditionBuffer.WriteString("WHERE ")
+			firstClause = false
+		} else {
+			whereConditionBuffer.WriteString(" AND ")
+		}
+		var valueString string
+		switch v := value.(type) {
+		case string:
+			valueString = fmt.Sprintf("'%s'", v)
+		case int64:
+			valueString = fmt.Sprintf("%d", v)
+		case float64:
+			valueString = fmt.Sprintf("%f", v)
+		case bool:
+			valueString = strconv.FormatBool(v)
+		case time.Time:
+			valueString = fmt.Sprintf("'%s'", v.String())
+		}
+		whereConditionBuffer.WriteString(fmt.Sprintf(" %s = %s ", key, valueString))
+	}
+}
+
+func BuildWhereCondition(searchConditions *SearchConditions, filterConditions *FilterConditions) string {
+	var whereConditionBuffer bytes.Buffer
+	firstClause := true
+	BuildWhereSearchCondition(&whereConditionBuffer, firstClause, searchConditions)
+	BuildWhereFilterCondition(&whereConditionBuffer, firstClause, filterConditions)
+	return whereConditionBuffer.String()
+}
 
 func main() {
 	// Controller code
 	var urlParameters = UrlParameters{
-		SearchString: createString("str1"),
-		//SearchString:       nil,  // The search string is either a (single) string or nil.
+		SearchString: createString("str1"), // This string can only be compared with strings.
+		//SearchString: createString("1"),     // This string can be compared with integers/floats.
+		//SearchString:       nil,             // The search string is either a (single) string or nil.
 		IntFilter:          createInt64(1),
 		FloatFilter:        createFloat64(1.0),
 		StringFilter:       createString("str2"),
@@ -139,25 +195,6 @@ func main() {
 	fmt.Println(fmt.Sprintf("\nServices:\n%+v \n%+v", searchConditions, filterConditions))
 
 	// Repository code
-	var whereConditionBuffer bytes.Buffer
-	//for key, value := range searchConditions {
-	//	whereConditionBuffer.WriteString(fmt.Sprintf("OR %s = %s ", key, valueString))
-	//}
-	for key, value := range filterConditions {
-		var valueString string
-		switch v := value.(type) {
-		case string:
-			valueString = fmt.Sprintf("'%s'", v)
-		case int64:
-			valueString = fmt.Sprintf("%d", v)
-		case float64:
-			valueString = fmt.Sprintf("%f", v)
-		case bool:
-			valueString = strconv.FormatBool(v)
-		case time.Time:
-			valueString = fmt.Sprintf("'%s'", v.String())
-		}
-		whereConditionBuffer.WriteString(fmt.Sprintf("AND %s = %s ", key, valueString))
-	}
-	fmt.Println(fmt.Sprintf("\nRepositories:\n%s", whereConditionBuffer.String()))
+	whereCondition := BuildWhereCondition(&searchConditions, &filterConditions)
+	fmt.Println(fmt.Sprintf("\nRepositories:\n%s", whereCondition))
 }
