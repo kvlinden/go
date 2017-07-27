@@ -147,3 +147,20 @@ Components:
 Manifest Notes:
 - The manifest lists routes that goCMS, running on port 9090, should pass through to the plugin, running on port 3000X.
 - The plugin needs to run on the port expected by goCMS. Tashi's new goCMS develop branch has a hack to handle this.
+
+
+---------------------------------
+JBos
+
+This script will remove/restart the database migration:
+DROP TABLE jbos_tickets;
+DROP TABLE jbos_machines;
+DROP TABLE jbos_routes;
+DROP TABLE jbos_customers;
+DROP TABLE jbos_employees;
+DROP TABLE jbos_status_values;
+DROP TABLE jbos_tax_class_values;
+DROP TABLE jbos_machine_type_values;
+DROP TABLE jbos_machine_category_values;
+DELETE FROM jbos_migrations;
+DELETE FROM gocms_settings WHERE name='JBOS_STATIC_ASSETS_URL_BASE' or name='USE_CDN_FOR_IMAGES';
