@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -83,28 +84,28 @@ func AddWhereDateCondition(fieldName string, value *time.Time, filterConditions 
 }
 func BuildSearchConditions(searchString *string, searchConditions SearchConditions) {
 	if searchString != nil {
-		searchConditions["SearchString"] = *searchString
+		searchConditions["tableName.searchString"] = *searchString
 		intValue, err := strconv.ParseInt(*searchString, 10, 64)
 		if err == nil {
-			searchConditions["SearchInt"] = intValue
+			searchConditions["tableName.SearchInt"] = intValue
 		}
 		floatValue, err := strconv.ParseFloat(*searchString, 64)
 		if err == nil {
-			searchConditions["SearchFloat"] = floatValue
+			searchConditions["tableName.SearchFloat"] = floatValue
 		}
 	}
 }
 func BuildFilterConditions(urlParameters *UrlParameters, filterConditions FilterConditions) {
-	AddWhereIntCondition("IntFilter", urlParameters.IntFilter, filterConditions)
-	AddWhereFloatCondition("FloatFilter", urlParameters.FloatFilter, filterConditions)
-	AddWhereStringCondition("StringFilter", urlParameters.StringFilter, filterConditions)
-	AddWhereBoolCondition("BoolFilter", urlParameters.BoolFilter, filterConditions)
-	AddWhereDateCondition("DateFilter", urlParameters.DateFilter, filterConditions)
-	AddWhereIntCondition("IntIgnoreFilter", urlParameters.IntIgnoreFilter, filterConditions)
-	AddWhereFloatCondition("FloatIgnoreFilter", urlParameters.FloatIgnoreFilter, filterConditions)
-	AddWhereStringCondition("StringIgnoreFilter", urlParameters.StringIgnoreFilter, filterConditions)
-	AddWhereBoolCondition("BoolIgnoreFilter", urlParameters.BoolIgnoreFilter, filterConditions)
-	AddWhereDateCondition("DateIgnoreFilter", urlParameters.DateIgnoreFilter, filterConditions)
+	AddWhereIntCondition("tableName.IntFilter", urlParameters.IntFilter, filterConditions)
+	AddWhereFloatCondition("tableName.FloatFilter", urlParameters.FloatFilter, filterConditions)
+	AddWhereStringCondition("tableName.StringFilter", urlParameters.StringFilter, filterConditions)
+	AddWhereBoolCondition("tableName.BoolFilter", urlParameters.BoolFilter, filterConditions)
+	AddWhereDateCondition("tableName.DateFilter", urlParameters.DateFilter, filterConditions)
+	AddWhereIntCondition("tableName.IntIgnoreFilter", urlParameters.IntIgnoreFilter, filterConditions)
+	AddWhereFloatCondition("tableName.FloatIgnoreFilter", urlParameters.FloatIgnoreFilter, filterConditions)
+	AddWhereStringCondition("tableName.StringIgnoreFilter", urlParameters.StringIgnoreFilter, filterConditions)
+	AddWhereBoolCondition("tableName.BoolIgnoreFilter", urlParameters.BoolIgnoreFilter, filterConditions)
+	AddWhereDateCondition("tableName.DateIgnoreFilter", urlParameters.DateIgnoreFilter, filterConditions)
 	// Generalizing this is probably possible using Reflection, but complicated. This code doesn't work properly.
 	//v := reflect.ValueOf(urlParameters)
 	//for i := 0; i < v.NumField(); i++ {
@@ -122,6 +123,10 @@ func BuildFilterConditions(urlParameters *UrlParameters, filterConditions Filter
 // repository utilities
 var FLOAT_EPSILON = 0.1
 
+func Nameify(name string) string {
+	return strings.Replace(name, ".", "_", -1)
+}
+
 func BuildWhereSearchConditionAndMap(whereConditionBuffer *bytes.Buffer, firstClause *bool, searchConditions *SearchConditions, whereMap WhereMap) {
 	if len(*searchConditions) > 0 {
 		for key, value := range *searchConditions {
@@ -133,13 +138,13 @@ func BuildWhereSearchConditionAndMap(whereConditionBuffer *bytes.Buffer, firstCl
 			}
 			switch value.(type) {
 			case string:
-				whereConditionBuffer.WriteString(fmt.Sprintf("%s LIKE '%%:%s%%'", key, key))
+				whereConditionBuffer.WriteString(fmt.Sprintf("%s LIKE '%%:%s%%'", key, Nameify(key)))
 			case int64:
-				whereConditionBuffer.WriteString(fmt.Sprintf("%s = :%s", key, key))
+				whereConditionBuffer.WriteString(fmt.Sprintf("%s = :%s", key, Nameify(key)))
 			case float64:
-				whereConditionBuffer.WriteString(fmt.Sprintf("%s BETWEEN (:%s-%f) AND (:%s+%f)", key, key, FLOAT_EPSILON, key, FLOAT_EPSILON))
+				whereConditionBuffer.WriteString(fmt.Sprintf("%s BETWEEN (:%s-%f) AND (:%s+%f)", key, Nameify(key), FLOAT_EPSILON, Nameify(key), FLOAT_EPSILON))
 			}
-			whereMap[key] = value
+			whereMap[Nameify(key)] = value
 		}
 		whereConditionBuffer.WriteString(") ")
 	}
@@ -156,12 +161,12 @@ func BuildWhereFilterConditionAndMap(whereConditionBuffer *bytes.Buffer, firstCl
 		var valueString string
 		switch value.(type) {
 		case string:
-			valueString = fmt.Sprintf("':%s'", key)
+			valueString = fmt.Sprintf("':%s'", Nameify(key))
 		case int64, float64, bool, time.Time:
-			valueString = fmt.Sprintf(":%s", key)
+			valueString = fmt.Sprintf(":%s", Nameify(key))
 		}
 		whereConditionBuffer.WriteString(fmt.Sprintf(" %s = %s ", key, valueString))
-		whereMap[key] = value
+		whereMap[Nameify(key)] = value
 	}
 }
 
@@ -204,4 +209,15 @@ func main() {
 	// Repository code
 	whereCondition, whereMap := BuildWhereConditionAndMap(&searchConditions, &filterConditions)
 	fmt.Println(fmt.Sprintf("\nRepositories:\n%s\n%+v", whereCondition, whereMap))
+
+	testMap := map[string]interface{}{"tableName_FloatFilter": float64(1.0), "tableName_StringFilter": "str2", "tableName_SearchFloat": float64(1.0), "tableName_searchString": int64(1), "tableName_SearchInt": int64(1), "tableName_BoolFilter": true, "tableName_DateFilter": "2014-11-12", "tableName_IntFilter": int64(1)}
+	fmt.Println(fmt.Sprintf("\nTesting\n%+v", testMap))
+
+	for k, v := range whereMap {
+		fmt.Println(fmt.Sprintf("m1*** %s: '%s' (%T)", k, v, v))
+	}
+	for k, v := range testMap {
+		fmt.Println(fmt.Sprintf("m2*** %s: '%s' (%T)", k, v, v))
+	}
+
 }
